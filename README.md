@@ -1,2 +1,2 @@
-#MC-CNN python implementation
+## MC-CNN python implementation
 ***to be detailed***
