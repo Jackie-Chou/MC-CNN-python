@@ -101,27 +101,27 @@ def conv(x, filter_height, filter_width, input_channels, num_filters, stride_y, 
         weights = tf.get_variable('weights', shape = [filter_height, filter_width, input_channels/groups, num_filters])
         biases = tf.get_variable('biases', shape = [num_filters])  
     
-    if groups == 1:
-        conv = convolve(x, weights)
-      
-    # In the cases of multiple groups, split inputs & weights and
-    else:
-        # Split input and weights and convolve them separately
-        input_groups = tf.split(axis = 3, num_or_size_splits=groups, value=x)
-        weight_groups = tf.split(axis = 3, num_or_size_splits=groups, value=weights)
-        output_groups = [convolve(i, k) for i,k in zip(input_groups, weight_groups)]
+        if groups == 1:
+            conv = convolve(x, weights)
+          
+        # In the cases of multiple groups, split inputs & weights and
+        else:
+            # Split input and weights and convolve them separately
+            input_groups = tf.split(axis = 3, num_or_size_splits=groups, value=x)
+            weight_groups = tf.split(axis = 3, num_or_size_splits=groups, value=weights)
+            output_groups = [convolve(i, k) for i,k in zip(input_groups, weight_groups)]
 
-        # Concat the convolved output together again
-        conv = tf.concat(axis = 3, values = output_groups)
-      
-    # Add biases 
-    bias = tf.reshape(tf.nn.bias_add(conv, biases), conv.get_shape().as_list())
-    
-    # Apply non_linear function
-    if non_linear == "RELU":
-        non_lin = tf.nn.relu(bias, name = scope.name)
-    elif non_linear == "NONE":
-        non_lin = tf.identity(bias, name = scope.name)
+            # Concat the convolved output together again
+            conv = tf.concat(axis = 3, values = output_groups)
+          
+        # Add biases 
+        bias = tf.reshape(tf.nn.bias_add(conv, biases), conv.get_shape().as_list())
+        
+        # Apply non_linear function
+        if non_linear == "RELU":
+            non_lin = tf.nn.relu(bias, name = scope.name)
+        elif non_linear == "NONE":
+            non_lin = tf.identity(bias, name = scope.name)
 
     return non_lin
   

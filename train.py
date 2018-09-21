@@ -58,8 +58,8 @@ def main():
     val_generator = ImageDataGenerator(val_file, shuffle = False) 
 
     batch_size = args.batch_size
-    train_batches_per_epoch = np.floor(train_generator.data_size / batch_size).astype(np.int32)
-    val_batches_per_epoch = np.floor(val_generator.data_size / batch_size).astype(np.int32)
+    train_batches_per_epoch = train_generator.data_size
+    val_batches_per_epoch = val_generator.data_size
 
     ######################
     # model graph preparation
@@ -73,7 +73,7 @@ def main():
     rightx_neg = tf.placeholder(tf.float32, shape=[batch_size, patch_height, patch_width, 3])
 
     # Initialize model
-    left_model = NET(x, input_patch_size=patch_height, batch_size=batch_size)
+    left_model = NET(leftx, input_patch_size=patch_height, batch_size=batch_size)
     right_model_pos = NET(rightx_pos, input_patch_size=patch_height, batch_size=batch_size)
     right_model_neg = NET(rightx_neg, input_patch_size=patch_height, batch_size=batch_size)
 
@@ -164,7 +164,7 @@ def main():
                 sess.run(train_op, feed_dict={leftx: batch_left,
                                               rightx_pos: batch_right_pos,
                                               rightx_neg: batch_right_neg})
-                
+
                 # Generate summary with the current batch of data and write to file
                 if (batch+1) % args.print_freq == 0:
                     s = sess.run(training_merged_summary, feed_dict={leftx: batch_left,
