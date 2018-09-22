@@ -77,3 +77,11 @@ def saveTimeFile(times, path):
 def testMk(dirName):
     if not os.path.isdir(dirName):
         os.mkdir(dirName)
+
+def recurMk(path):
+    items = path.split("/")
+    prefix = "/"
+    for item in items:
+        prefix = os.path.join(prefix, item)
+        testMk(prefix)
+

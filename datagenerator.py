@@ -17,7 +17,7 @@ class ImageDataGenerator:
                  patch_size=(11, 11),
                  in_left_suffix='im0.png',
                  in_right_suffix='im1.png',
-                 gt_suffix='disp0.pfm',
+                 gt_suffix='disp0GT.pfm',
                  # tunable hyperparameters
                  # see origin paper for details
                  dataset_neg_low=1.5, dataset_neg_high=6,
@@ -81,14 +81,14 @@ class ImageDataGenerator:
         self.gt_images = []
 
         for _ in range(self.data_size):
-            # NOTE: using cv2 the image formatted as BGR
-            left_image = cv2.imread(self.left_paths[_]).astype(np.float32) / 255.
-            right_image = cv2.imread(self.right_paths[_]).astype(np.float32) / 255.
+            # NOTE: read image as grayscale as the origin paper suggested
+            left_image = cv2.imread(self.left_paths[_], cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255.
+            right_image = cv2.imread(self.right_paths[_], cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255.
         
             # preprocess images by subtracting the mean and dividing by the standard deviation
             # as the paper described
-            left_image = (left_image - np.mean(left_image)) / np.std(left_image)
-            right_image = (right_image - np.mean(right_image)) / np.std(right_image)
+            left_image = (left_image - np.mean(left_image, axis=(0, 1))) / np.std(left_image, axis=(0, 1))
+            right_image = (right_image - np.mean(right_image, axis=(0, 1))) / np.std(right_image, axis=(0, 1))
 
             self.left_images.append(left_image)
             self.right_images.append(right_image)
@@ -169,19 +169,19 @@ class ImageDataGenerator:
 
         # augment raw image with zero paddings 
         # this prevents potential indexing error occurring near boundaries
-        auged_left_image = np.zeros([height+self.patch_size[0]-1, width+self.patch_size[1]-1, 3], dtype=np.float32)
-        auged_right_image = np.zeros([height+self.patch_size[0]-1, width+self.patch_size[1]-1, 3], dtype=np.float32)
+        auged_left_image = np.zeros([height+self.patch_size[0]-1, width+self.patch_size[1]-1, 1], dtype=np.float32)
+        auged_right_image = np.zeros([height+self.patch_size[0]-1, width+self.patch_size[1]-1, 1], dtype=np.float32)
 
         # NOTE: patch size should always be odd
         rows_auged = (self.patch_size[0] - 1)/2
         cols_auged = (self.patch_size[1] - 1)/2
-        auged_left_image[rows_auged: rows_auged+height, cols_auged: cols_auged+width] = left_image
-        auged_right_image[rows_auged: rows_auged+height, cols_auged: cols_auged+width] = right_image
+        auged_left_image[rows_auged: rows_auged+height, cols_auged: cols_auged+width, 0] = left_image
+        auged_right_image[rows_auged: rows_auged+height, cols_auged: cols_auged+width, 0] = right_image
 
         # pick patches
-        patches_left = np.ndarray([batch_size, self.patch_size[0], self.patch_size[1], 3], dtype=np.float32)
-        patches_right_pos = np.ndarray([batch_size, self.patch_size[0], self.patch_size[1], 3], dtype=np.float32)
-        patches_right_neg = np.ndarray([batch_size, self.patch_size[0], self.patch_size[1], 3], dtype=np.float32)
+        patches_left = np.ndarray([batch_size, self.patch_size[0], self.patch_size[1], 1], dtype=np.float32)
+        patches_right_pos = np.ndarray([batch_size, self.patch_size[0], self.patch_size[1], 1], dtype=np.float32)
+        patches_right_neg = np.ndarray([batch_size, self.patch_size[0], self.patch_size[1], 1], dtype=np.float32)
 
         for _ in range(batch_size):
             row = rows[_]

@@ -34,10 +34,10 @@ class NET(object):
 
         # input size/size of x:
         # [batch_size, h, w, 3] for RGB image
-        # [batch_size, h, w, 1] for greyscale image
+        # [batch_size, h, w, 1] for grayscale image
 
-        # input channels: 3 for RGB while 1 for greyscale
-        ic = 3 
+        # input channels: 3 for RGB while 1 for grayscale
+        ic = 1 
         bs = self.batch_size
         k = self.conv_kernel_size
         nf = self.num_conv_feature_maps
@@ -61,8 +61,7 @@ class NET(object):
                 padding = "VALID", non_linear = "NONE", name = 'conv{}'.format(nl)))
         print "conv{}: {}".format(nl, getattr(self, "conv{}".format(nl)).shape)
 
-        self.flattened = tf.reshape(getattr(self, "conv{}".format(nl)), [bs, -1])
-        self.features = tf.nn.l2_normalize(self.flattened, dim=-1, name = "normalize")
+        self.features = tf.nn.l2_normalize(getattr(self, "conv{}".format(nl)), dim=-1, name = "normalize")
         print "features: {}".format(self.features.shape)
 
     def load_initial_weights(self, session):

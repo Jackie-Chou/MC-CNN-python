@@ -68,18 +68,18 @@ def main():
     batch_size = args.batch_size
 
     # TF placeholder for graph input
-    leftx = tf.placeholder(tf.float32, shape=[batch_size, patch_height, patch_width, 3])
-    rightx_pos = tf.placeholder(tf.float32, shape=[batch_size, patch_height, patch_width, 3])
-    rightx_neg = tf.placeholder(tf.float32, shape=[batch_size, patch_height, patch_width, 3])
+    leftx = tf.placeholder(tf.float32, shape=[batch_size, patch_height, patch_width, 1])
+    rightx_pos = tf.placeholder(tf.float32, shape=[batch_size, patch_height, patch_width, 1])
+    rightx_neg = tf.placeholder(tf.float32, shape=[batch_size, patch_height, patch_width, 1])
 
     # Initialize model
     left_model = NET(leftx, input_patch_size=patch_height, batch_size=batch_size)
     right_model_pos = NET(rightx_pos, input_patch_size=patch_height, batch_size=batch_size)
     right_model_neg = NET(rightx_neg, input_patch_size=patch_height, batch_size=batch_size)
 
-    featuresl = left_model.features
-    featuresr_pos = right_model_pos.features
-    featuresr_neg = right_model_neg.features
+    featuresl = tf.squeeze(left_model.features, [1, 2])
+    featuresr_pos = tf.squeeze(right_model_pos.features, [1, 2])
+    featuresr_neg = tf.squeeze(right_model_neg.features, [1, 2])
 
     # Op for calculating cosine distance/dot product
     with tf.name_scope("correlation"):
@@ -126,7 +126,7 @@ def main():
     # Initialize the FileWriter
     writer = tf.summary.FileWriter(filewriter_path)
     # Initialize an saver for store model checkpoints
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(max_to_keep=10)
 
     ######################
     # DO training 
