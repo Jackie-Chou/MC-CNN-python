@@ -1,2 +1,10 @@
 *.pyc
 *.swp
+*.png
+*.pfm
+*.txt
+*.sh
+data/*
+!data/MiddEval3/trainingH/
+!data/MiddEval3/testH/
+

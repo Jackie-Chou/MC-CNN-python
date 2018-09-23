@@ -20,6 +20,7 @@ parser.add_argument("-ps", "--patch_size", type=int, default=11, help="length fo
 parser.add_argument("--list_file", type=str, required=True, help="path to file containing left image list")
 parser.add_argument("--resume", type=str, default=None, help="path to checkpoint to resume from. \
                     if None(default), model is initialized using default methods")
+parser.add_argument("--data_dir", type=str, required=True, help="path to root dir to data.")
 parser.add_argument("--save_dir", type=str, required=True, help="path to root dir to save results")
 parser.add_argument("-t", "--tag", type=str, required=True, help="tag used to indicate one run")
 parser.add_argument("-s", "--start", type=int, required=True, help="index of first image to do matching,\
@@ -35,15 +36,11 @@ parser.add_argument("--cbca_num_iterations2", type=float, default=16, help="dist
 parser.add_argument("--sgm_P1", type=float, default=2.3, help="hyperparemeter used in semi-global matching")
 parser.add_argument("--sgm_P2", type=float, default=55.9, help="hyperparemeter used in semi-global matching")
 parser.add_argument("--sgm_Q1", type=float, default=4, help="hyperparemeter used in semi-global matching")
-parser.add_argument("--sgm_q2", type=float, default=8, help="hyperparemeter used in semi-global matching")
+parser.add_argument("--sgm_Q2", type=float, default=8, help="hyperparemeter used in semi-global matching")
 parser.add_argument("--sgm_D", type=float, default=0.08, help="hyperparemeter used in semi-global matching")
 parser.add_argument("--sgm_V", type=float, default=1.5, help="hyperparemeter used in semi-global matching")
 parser.add_argument("--blur_sigma", type=float, default=6, help="hyperparemeter used in bilateral filter")
 parser.add_argument("--blur_threshold", type=float, default=2, help="hyperparemeter used in bilateral filter")
-
-# data root dir, use prefix replacing to generate output
-# change this to your own data root dir path
-data_dir = "/scratch/xz/MC-CNN-python/data/MiddEval3"
 
 # different file names
 left_image_suffix = "im0.png"
@@ -68,6 +65,7 @@ def main():
     left_image_list = args.list_file
 
     save_dir = args.save_dir
+    data_dir = args.data_dir
     save_res_dir = os.path.join(save_dir, "submit_{}".format(args.tag))
     save_img_dir = os.path.join(save_dir, "submit_{}_imgs".format(args.tag))
     util.testMk(save_res_dir)
@@ -121,8 +119,10 @@ def main():
         right_image = cv2.imread(right_path, cv2.IMREAD_GRAYSCALE).astype(np.float32)
         left_image = (left_image - np.mean(left_image, axis=(0, 1))) / np.std(left_image, axis=(0, 1))
         right_image = (right_image - np.mean(right_image, axis=(0, 1))) / np.std(right_image, axis=(0, 1))
-        assert left_image.shape == (height, width)
-        assert right_image.shape == (height, width)
+        left_image = np.expand_dims(left_image, axis=2)
+        right_image = np.expand_dims(right_image, axis=2)
+        assert left_image.shape == (height, width, 1)
+        assert right_image.shape == (height, width, 1)
         print "{}: images read".format(datetime.now())
 
         # start timer for time file
@@ -137,30 +137,36 @@ def main():
         left_cost_volume, right_cost_volume = compute_cost_volume(left_feature, right_feature, ndisp)
         print "{}: cost-volume computed".format(datetime.now())
 
+        """
         # cost-volume aggregation
         print "{}: beginning cost-volume aggregation, this could take long".format(datetime.now())
         left_cost_volume, right_cost_volume = cost_volume_aggregation(left_image, right_image,left_cost_volume,right_cost_volume,\
                                                                args.cbca_intensity, args.cbca_distance, args.cbca_num_iterations1) 
         print "{}: cost-volume aggregated".format(datetime.now())
+        """
 
+        """
         # semi-global matching
         print "{}: beginning semi-global matching".format(datetime.now())
         left_cost_volume, right_cost_volume = SGM_average(left_cost_volume, right_cost_volume, left_image, right_image, \
-                                                            args.sgm_P1, args.sgm_P2, args.sgm_Q1, args.sgm_Q2, args.sgm_D)
+                                                     args.sgm_P1, args.sgm_P2, args.sgm_Q1, args.sgm_Q2, args.sgm_D, args.sgm_V)
         print "{}: semi-global matched".format(datetime.now())
+        """
 
+        """
         # cost-volume aggregation afterhand
         print "{}: beginning cost-volume aggregation, this could take long".format(datetime.now())
         left_cost_volume, right_cost_volume = cost_volume_aggregation(left_image, right_image,left_cost_volume,right_cost_volume,\
                                                                args.cbca_intensity, args.cbca_distance, args.cbca_num_iterations2) 
         print "{}: cost-volume aggregated".format(datetime.now())
+        """
 
         # disparity map making 
         left_disparity_map, right_disparity_map = disparity_prediction(left_cost_volume, right_cost_volume)
         print "{}: disparity predicted".format(datetime.now())
 
         # interpolation
-        left_disparity_map = interpolation(left_disparity_map, right_disparity_map)
+        left_disparity_map = interpolation(left_disparity_map, right_disparity_map, ndisp)
         print "{}: disparity interpolated".format(datetime.now())
 
         # refinement

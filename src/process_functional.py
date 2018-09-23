@@ -21,8 +21,8 @@ def compute_features(left_image, right_image, patch_height, patch_width, checkpo
     auged_right_image = np.zeros([1, height+patch_height-1, width+patch_width-1, 1], dtype=np.float32)
     row_start = (patch_height - 1)/2
     col_start = (patch_width - 1)/2
-    auged_left_image[0, row_start: row_start+height, col_start: col_start+width, 0] = left_image
-    auged_right_image[0, row_start: row_start+height, col_start: col_start+width, 0] = right_image
+    auged_left_image[0, row_start: row_start+height, col_start: col_start+width] = left_image
+    auged_right_image[0, row_start: row_start+height, col_start: col_start+width] = right_image
 
     # TF placeholder for graph input
     x = tf.placeholder(tf.float32, shape=[1, height+patch_height-1, width+patch_width-1, 1])  
@@ -233,7 +233,7 @@ def SGM_average(left_cost_volume, right_cost_volume, left_image, right_image, \
 def disparity_prediction(left_cost_volume, right_cost_volume):
 
     print "{}: left disparity map making...".format(datetime.now())
-    height, width = left_cost_volume.shape[1:]
+    ndisp, height, width = left_cost_volume.shape
     left_disparity_map = np.ndarray([height, width], dtype=np.float32)
     for h in range(height):
         for w in range(width):
@@ -268,7 +268,7 @@ def disparity_prediction(left_cost_volume, right_cost_volume):
 # 0: match
 # 1: mismatch
 # 2: occlusion
-def interpolation(left_disparity_map, right_disparity_map):
+def interpolation(left_disparity_map, right_disparity_map, ndisp):
 
     print "{}: doing left-right consistency check...".format(datetime.now())
     height, width = left_disparity_map.shape
@@ -385,9 +385,9 @@ def bilateral_filter(left_image, left_disparity_map, filter_height, filter_width
 
     print "{}: doing bilateral filter...".format(datetime.now())
     height, width = left_disparity_map.shape
-    g = normal(mean, std_dev)
-    cneter_h = (filter_height - 1)/2
-    cneter_w = (filter_width - 1)/2
+    g = util.normal(mean, std_dev)
+    center_h = (filter_height - 1)/2
+    center_w = (filter_width - 1)/2
     bi_filter = np.zeros([filter_height, filter_width], dtype=np.float32)
     for h in range(filter_height):
         for w in range(filter_width):
@@ -405,7 +405,7 @@ def bilateral_filter(left_image, left_disparity_map, filter_height, filter_width
             filter_hs = center_h - (h - patch_hs)
             filter_he = center_h + (patch_he - h)
             filter_ws = center_w - (w - patch_ws)
-            filter_ws = center_w + (patch_we - w)
+            filter_we = center_w + (patch_we - w)
             tem_filter = bi_filter[filter_hs:filter_he, filter_ws:filter_we]
             assert tem_filter.shape == patch.shape
 
@@ -419,7 +419,7 @@ def bilateral_filter(left_image, left_disparity_map, filter_height, filter_width
             Wsum = np.sum(final_filter)
             
             final_patch = np.multiply(final_filter, patch)
-            bi_left_dispatiy_map[h, w] = np.sum(final_patch) / Wsum
+            bi_left_disparity_map[h, w] = np.sum(final_patch) / Wsum
 
     left_disparity_map = bi_left_disparity_map
     print "{}: bilateral filtering done...".format(datetime.now())
@@ -427,6 +427,8 @@ def bilateral_filter(left_image, left_disparity_map, filter_height, filter_width
     return left_disparity_map
 
 def semi_global_matching(left_image, right_image, cost_volume, r, sgm_P1, sgm_P2, sgm_Q1, sgm_Q2, sgm_D, choice):
+
+    ndisp, height, width = cost_volume.shape
     assert choice == "R" or choice == "L"
     rh = r[0]
     rw = r[1]
