@@ -67,6 +67,9 @@ def compute_features(left_image, right_image, patch_height, patch_width, checkpo
         featuresr = np.squeeze(featuresr, axis=0) # (height, width, 64)
         print "{}: features computed done...".format(datetime.now())
 
+    # clear the used gpu memory
+    tf.reset_default_graph()
+
     return featuresl, featuresr
 
 # form cost volume

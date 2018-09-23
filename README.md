@@ -33,6 +33,9 @@ for details type
 ..* in match.py, there are also some global suffix and filename variables set with respect to Middlebury, so the same changes should be made beforehand.
 ..* the hierarchy of the data directory should be consistent with mine. Please check the data directory for details. I only keep the directory hierarchy without any data since it's a bit large.
 
+### TODO
+- the semi-global matching procedure seems to have some bugs and would give unreasonable result, and I will try to fix it in the future.
+
 ### License
 MIT license.
 

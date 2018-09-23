@@ -1,0 +1,105 @@
+#!/bin/csh -f
+
+# creates zip file with results of stereo algorithm for submission to benchmark
+# requires unix tool 'bc' (command-line calculator)
+
+if ($#argv < 2) then
+  echo ""
+  echo "  usage: ./makezip <res> <datasets> <alg>"
+  echo ""
+  echo "  creates zip file of result files for given resolution"
+  echo "    <res>      - one of F, H, Q"
+  echo "    <datasets> - 'training' or 'all'"
+  echo ""
+  echo "  collects disp0<alg>.pfm, disp0<alg>_s.pfm (optional), and time<alg>.txt"
+  echo "  for 15 training datasets or all 30 datasets."
+  echo ""
+  exit 1
+endif
+
+set res = $1
+set ds = $2
+set alg = $3
+
+if ($res != 'F' && $res != 'H' && $res != 'Q') then
+  echo "unknown resolution $res"
+  exit 1
+endif
+
+if ($ds != training && $ds != all) then
+  echo "unknown dataset $ds"
+  exit 1
+endif
+
+touch .tmpxxx # to avoid "no match" error
+if ($ds == training) then
+  set f1 = (.tmpxx* training$res/*/disp0$alg.pfm)
+  set f2 = (.tmpxx* training$res/*/disp0${alg}_s.pfm)
+  set f3 = (.tmpxx* training$res/*/time$alg.txt)
+  set n = 15
+else
+  set f1 = (.tmpxx* training$res/*/disp0$alg.pfm test$res/*/disp0$alg.pfm)
+  set f2 = (.tmpxx* training$res/*/disp0${alg}_s.pfm test$res/*/disp0${alg}_s.pfm)
+  set f3 = (.tmpxx* training$res/*/time$alg.txt test$res/*/time$alg.txt)
+  set n = 30
+endif
+
+# remove first item in each list
+shift f1
+shift f2
+shift f3
+rm -f .tmpxxx
+
+set quit = 0
+if ($#f1 != 0 && $#f1 != $n) then
+  echo "need $n (or 0) files disp0$alg.pfm, $#f1 found"
+  set quit = 1
+endif
+
+if ($#f2 != 0 && $#f2 != $n) then
+  echo "need $n (or 0) files disp0${alg}_s.pfm, $#f2 found"
+  set quit = 1
+endif
+
+if ($#f1 == 0 && $#f2 == 0) then
+  echo "need $n files disp0$alg.pfm AND/OR disp0${alg}_s.pfm, none found"
+  set quit = 1
+endif
+
+if ($#f3 != $n) then
+  echo "need $n files time${alg}.txt, $#f3 found"
+  set quit = 1
+endif
+
+echo 0 > .tsum
+foreach t ($f3)
+  set t1 = `cat .tsum`
+  set t2 = `cat $t`
+  (echo "$t1+$t2" | bc -ls > .tsum) >& .terr
+  set err = `cat .terr`
+
+  if ("$err" != "") then
+    echo $err
+    echo "Wrong format of file ${t}: $t2"
+    set quit = 1
+    break
+  endif
+end
+
+rm -f .tsum .terr
+
+if ($quit) exit 1
+
+set z = results$res-$alg.zip
+if (-e $z) then
+  echo -n "*** Ok to overwrite $z (y/n)? "
+  set ans = $<
+  if ($ans != y) exit
+endif
+
+rm -f $z
+zip $z $f1 $f2 $f3
+
+echo ""
+echo wrote $z
+echo ""

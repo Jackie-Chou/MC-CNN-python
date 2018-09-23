@@ -1,0 +1,109 @@
+#!/bin/csh -f
+
+# run "efficient" evaluation using GT of same size as dataset
+
+# note that a threshold of 1.0 at full resolution corresponds
+# to 0.5 at half resolution and 0.25 at quarter resolution
+
+if ($#argv < 3) then
+  echo ""
+  echo '  runs "efficient" evaluation using GT of same size as dataset'
+  echo '  (use runevalF for "official" evaluation using full-size GT)'
+  echo ""
+  echo "  usage: ./runeval [-b] <res> <dataset> <thresh> [<alg1> ...]"
+  echo ""
+  echo "    <res>      - one of F, H, Q"
+  echo "    <dataset>  - 'training'/'all' or one of the datasets, e.g. 'Piano'"
+  echo "    <thresh>   - error threshold"
+  echo "    <alg1> ... - name of algorithm(s) to evaluate (default: all)"
+  echo ""
+  echo "    option -b ('brief') outputs data with single header line for"
+  echo "                        easy importing into other programs"         
+  echo ""
+  echo "  examples:"
+  echo ""
+  echo "    ./runeval Q Piano 0.25 ELAS"
+  echo "    ./runeval H training 1.0 ELAS SGM GT"
+  echo "    ./runeval H training 0.5 ELAS_s SGM_s"
+  echo "    ./runeval -b H all 0.5"
+  echo ""
+  exit 1
+endif
+
+# get relative path to evaldisp executable
+set p = $0:h
+if ($p == $0) set p = .
+set p = $p/code
+
+set evalprog = $p/evaldisp
+if (! -x $evalprog) then
+  echo "executable $evalprog not found"
+  exit 1
+endif
+
+@ brief = ("$1" == "-b")
+if ($brief) shift
+
+set res = $1
+set ds = $2
+set thresh = $3
+shift
+shift
+shift
+set algs = ($*)
+
+if ($res != 'F' && $res != 'H' && $res != 'Q') then
+  echo "unknown resolution $res"
+  exit 1
+endif
+
+set traind = training$res
+if (! -d $traind) then
+  echo "dataset directory $traind not found"
+  exit 1
+endif
+
+if ($ds == training || $ds == all) then
+  set dsets = ($traind/*)
+else if (-d $traind/$ds) then
+  set dsets = ($traind/$ds)
+else
+  echo "unknown dataset $ds"
+  exit 1
+endif
+
+if ($brief) then # print column headers only once
+  printf "dataset       algorithm      "
+  $evalprog $thresh # print column headers
+endif
+
+foreach d ($dsets)
+  set rounddisp = `awk -F= '/isint/ {print $2}' $d/calib.txt`
+  if (! $brief) then  # verbose output format
+    echo ====================================================== $d
+    if ($rounddisp) then
+      echo -n "  **rounding   "
+    else
+      echo -n "               "
+    endif
+    $evalprog $thresh # print column headers
+  endif
+  
+  set maxdisp = `awk -F= '/ndisp/ {print $2}' $d/calib.txt`
+  foreach a ($algs)
+    if (-e $d/disp0$a.pfm) then
+      if ($brief) printf "%-14s" $d:t   # print dataset name in first column
+      printf "%-15s" $a
+      $evalprog $d/disp0$a.pfm $d/disp0GT.pfm $thresh $maxdisp $rounddisp $d/mask0nocc.png
+    endif
+  end
+  if ($#algs == 0) then  # if no algs given, evaluate all disp0*pfm files
+    foreach f ($d/disp0*pfm)
+      set a = `expr $f : '.*disp0\(.*\)\.pfm'`
+      if ($a == GTy) continue    # no point in evaluating these
+      if ($brief) printf "%-14s" $d:t   # print dataset name in first column
+      printf "%-15s" $a
+      $evalprog $f $d/disp0GT.pfm $thresh $maxdisp $rounddisp $d/mask0nocc.png
+    end
+  endif
+end

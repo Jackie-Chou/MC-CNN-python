@@ -137,29 +137,27 @@ def main():
         left_cost_volume, right_cost_volume = compute_cost_volume(left_feature, right_feature, ndisp)
         print "{}: cost-volume computed".format(datetime.now())
 
-        """
         # cost-volume aggregation
         print "{}: beginning cost-volume aggregation, this could take long".format(datetime.now())
         left_cost_volume, right_cost_volume = cost_volume_aggregation(left_image, right_image,left_cost_volume,right_cost_volume,\
                                                                args.cbca_intensity, args.cbca_distance, args.cbca_num_iterations1) 
         print "{}: cost-volume aggregated".format(datetime.now())
-        """
 
-        """
+        '''
         # semi-global matching
         print "{}: beginning semi-global matching".format(datetime.now())
         left_cost_volume, right_cost_volume = SGM_average(left_cost_volume, right_cost_volume, left_image, right_image, \
                                                      args.sgm_P1, args.sgm_P2, args.sgm_Q1, args.sgm_Q2, args.sgm_D, args.sgm_V)
         print "{}: semi-global matched".format(datetime.now())
-        """
+        '''
 
-        """
+        '''
         # cost-volume aggregation afterhand
         print "{}: beginning cost-volume aggregation, this could take long".format(datetime.now())
         left_cost_volume, right_cost_volume = cost_volume_aggregation(left_image, right_image,left_cost_volume,right_cost_volume,\
                                                                args.cbca_intensity, args.cbca_distance, args.cbca_num_iterations2) 
         print "{}: cost-volume aggregated".format(datetime.now())
-        """
+        '''
 
         # disparity map making 
         left_disparity_map, right_disparity_map = disparity_prediction(left_cost_volume, right_cost_volume)

@@ -1,0 +1,55 @@
+#!/bin/csh -f
+
+# run visualization of disparity maps
+
+if ($#argv < 1) then
+  echo ""
+  echo "  usage: ./runviz <res>"
+  echo ""
+  echo "  creates color visualization dispX-c.png for each disparity map dispX.pfm"
+  echo "  on subsequent runs, only processes files that have changed"
+  echo "    <res>      - one of F, H, Q"
+  exit 1
+endif
+
+# get relative path to pfm2png executable
+set p = $0:h
+if ($p == $0) set p = .
+set p = $p/code
+
+set vizprog = $p/pfm2png
+if (! -x $vizprog) then
+  echo "executable $vizprog not found"
+  exit 1
+endif
+
+set res = $1
+
+if ($res != 'F' && $res != 'H' && $res != 'Q') then
+  echo "unknown resolution $res"
+  exit 1
+endif
+
+set dyr = 6  # range for visualizing GTy files
+if ($res == 'H') set dyr = 3
+if ($res == 'Q') set dyr = 1.5
+
+
+touch .tmpxxx # to avoid "no match" error
+foreach d (training$res/* test$res/*)
+  echo ============================================== $d
+  foreach src ($d/disp*.pfm .tmpxx*)
+    if ($src == .tmpxxx) continue
+    set dst = $src:r-c.png
+    if (-M $src > -M $dst) then # only if source is newer (or dst doesn't exist)
+      if ($src == $d/disp0GTy.pfm || $src == $d/disp1GTy.pfm) then
+        (set echo; $vizprog -m -$dyr -d $dyr $src $dst)  # use dyr for GTy files
+      else if ($d:h == training$res) then # if training set
+        (set echo; $vizprog -c $d/calib.txt $src $dst)  # use range from calib file
+      else # test set
+        (set echo; $vizprog $src $dst)  # use range of input data
+      endif
+    endif
+  end
+end
+rm -f .tmpxxx

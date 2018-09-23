@@ -1,0 +1,6 @@
+model_checkpoint_path: "/scratch/xz/MC-CNN-python/data/tensorboard_log/model_epoch2000.ckpt"
+all_model_checkpoint_paths: "/scratch/xz/MC-CNN-python/data/tensorboard_log/model_epoch1200.ckpt"
+all_model_checkpoint_paths: "/scratch/xz/MC-CNN-python/data/tensorboard_log/model_epoch1400.ckpt"
+all_model_checkpoint_paths: "/scratch/xz/MC-CNN-python/data/tensorboard_log/model_epoch1600.ckpt"
+all_model_checkpoint_paths: "/scratch/xz/MC-CNN-python/data/tensorboard_log/model_epoch1800.ckpt"
+all_model_checkpoint_paths: "/scratch/xz/MC-CNN-python/data/tensorboard_log/model_epoch2000.ckpt"
