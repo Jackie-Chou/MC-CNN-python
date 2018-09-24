@@ -17,7 +17,7 @@ simple implementation of MC-CNN origined from the paper[1] in python
 - match.py: main program of stereo matching, call related procedures from process_functional.py by order and save the results.
 
 ### usage
-1. train the MC-CNN model, this is pretty quick on my Nvidia 1080Ti GPU.
+1. train the MC-CNN model, this is pretty quick on my Nvidia 1080Ti GPU for 2000 epochs.
 for details type
 > python train.py -h
 
@@ -27,14 +27,13 @@ for details type
 
 ### NOTE
 - this code should only serve as a demo
-- the running time of the whole program could be very long, python is obviously slow for such computationally intensive program, thus in their original paper [1], the authors used torch & cuda mainly. I comment out many intermediate procedures of the whole program in match.py, for those who wanna have a feeling of suffering or keep your cpu busy, please delete those comments manually :).
+- the running time of the whole program could be very long, python is obviously slow for such computationally intensive program, thus in their original paper [1], the authors used torch & cuda mainly. I keep all the processing procedures mentioned in the paper, but feel free to skip some of them like semiglobal matching if you want, just comment out relevant snippets in match.py.
 - I haved tested the code on [Middlebury stereo dataset(version 3)](http://vision.middlebury.edu/stereo/submit3/), using the half resolution data. It's supposed the code can be used seamlessly on any other dataset with some details taken care of.
-..* in datagenerator.py, the default suffix arguments of __init__ method of ImageDataGenerator class is set with respect to Middlebury dataset, so it should be specified according to the dataset your are using.
+..* in datagenerator.py, the default suffix arguments of __init__ method of ImageDataGenerator class is set with respect to Middlebury dataset, so it should be specified according to the dataset you are using.
 ..* in match.py, there are also some global suffix and filename variables set with respect to Middlebury, so the same changes should be made beforehand.
 ..* the hierarchy of the data directory should be consistent with mine. Please check the data directory for details. I only keep the directory hierarchy without any data since it's a bit large.
-
-### TODO
-- the semi-global matching procedure seems to have some bugs and would give unreasonable result, and I will try to fix it in the future.
+- All the hyperparameters are set to the suggested value from the origin paper and I do not do further finetuning.
+- In my implementation, some processing details may be a little bit different from what the paper describes and I suppose it would not harm the performance too much. You can find those differences from the comments.
 
 ### License
 MIT license.
