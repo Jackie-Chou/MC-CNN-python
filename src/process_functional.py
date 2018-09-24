@@ -120,8 +120,8 @@ def cost_volume_aggregation(left_image, right_image, left_cost_volume, right_cos
     left_union_region, left_union_region_num = compute_cross_region(left_image, intensity_threshold, distance_threshold)
     right_union_region, right_union_region_num = compute_cross_region(right_image, intensity_threshold, distance_threshold)
     """
-    this is too large and is impractical:)
-    # then compute disparity-dependent union regions
+    # NOTE: this is too large and is impractical to run :)
+    # then compute disparity-dependent union regions considering support regions of both images
     print "{}: cost volume aggragation for left image...".format(datetime.now())
     max_num = (2*distance_threshold)**2
     dis_left_union_region = np.ndarray([ndisp, height, width, max_num, 2], dtype=np.int32)
@@ -142,14 +142,14 @@ def cost_volume_aggregation(left_image, right_image, left_cost_volume, right_cos
                                         compute_disparity_union_region(left_union_region, left_union_region_num, \
                                                                        right_union_region, right_union_region_num, d, "R")
     """
+
     # then compute average match cost using union regions
     # NOTE: the averaging can be done several times
     print "{}: cost averaging for left cost_volume...".format(datetime.now())
     for _ in range(max_average_time):
         print "\t{}: averaging No.{} time".format(datetime.now(), _)
+
         agg_cost_volume = np.ndarray(left_cost_volume.shape, dtype=np.float32)
-        # averaging for every disparity
-        #for d in range(ndisp):
         for h in range(height):
             for w in range(width):
                 aver_num = left_union_region_num[h, w]
@@ -159,14 +159,14 @@ def cost_volume_aggregation(left_image, right_image, left_cost_volume, right_cos
                     h_, w_ = aver_regions[v]
                     cost_sum += left_cost_volume[:, h_, w_]
                 agg_cost_volume[:, h, w] = cost_sum / aver_num
+
         left_cost_volume = agg_cost_volume
 
     print "{}: cost averaging for right cost_volume...".format(datetime.now())
     for _ in range(max_average_time):
         print "\t{}: averaging No.{} time".format(datetime.now(), _)
+
         agg_cost_volume = np.ndarray(right_cost_volume.shape, dtype=np.float32)
-        # averaging for every disparity
-        #for d in range(ndisp):
         for h in range(height):
             for w in range(width):
                 aver_num = right_union_region_num[h, w]
@@ -176,7 +176,9 @@ def cost_volume_aggregation(left_image, right_image, left_cost_volume, right_cos
                     h_, w_ = aver_regions[v]
                     cost_sum += right_cost_volume[:, h_, w_]
                 agg_cost_volume[:, h, w] = cost_sum / aver_num
+
         right_cost_volume = agg_cost_volume
+
     print "{}: cost average done...".format(datetime.now())
     return left_cost_volume, right_cost_volume
 
@@ -184,7 +186,8 @@ def cost_volume_aggregation(left_image, right_image, left_cost_volume, right_cos
 # NOTE: after SGM, doing cost aggregation again
 def SGM_average(left_cost_volume, right_cost_volume, left_image, right_image, \
                 sgm_P1, sgm_P2, sgm_Q1, sgm_Q2, sgm_D, sgm_V):
-    # use four directions dynamic programming and take average
+
+    # along four directions do dynamic programming and take average
     print "{}: semi-global matching for left image...".format(datetime.now())
     # right
     print "{}: right".format(datetime.now())
@@ -197,11 +200,11 @@ def SGM_average(left_cost_volume, right_cost_volume, left_image, right_image, \
     # for two vertical directions, P1 should be further devided by sgm_V
     # up
     print "{}: up".format(datetime.now())
-    r = (1, 0)
+    r = (-1, 0)
     left_cost_volume_up = semi_global_matching(left_image, right_image, left_cost_volume, r, sgm_P1/sgm_V, sgm_P2, sgm_Q1, sgm_Q2, sgm_D, "L")
     # bottom
     print "{}: bottom".format(datetime.now())
-    r = (-1, 0)
+    r = (1, 0)
     left_cost_volume_bottom = semi_global_matching(left_image, right_image, left_cost_volume, r, sgm_P1/sgm_V, sgm_P2, sgm_Q1, sgm_Q2, sgm_D, "L")
     # taken average
     left_cost_volume = (left_cost_volume_right + left_cost_volume_left + left_cost_volume_up + left_cost_volume_bottom) / 4.
@@ -219,11 +222,11 @@ def SGM_average(left_cost_volume, right_cost_volume, left_image, right_image, \
     # for two vertical directions, P1 should be further devided by sgm_V
     # up
     print "{}: up".format(datetime.now())
-    r = (1, 0)
+    r = (-1, 0)
     right_cost_volume_up = semi_global_matching(left_image, right_image, right_cost_volume, r, sgm_P1/sgm_V, sgm_P2, sgm_Q1, sgm_Q2, sgm_D, "R")
     # bottom
     print "{}: bottom".format(datetime.now())
-    r = (-1, 0)
+    r = (1, 0)
     right_cost_volume_bottom = semi_global_matching(left_image, right_image, right_cost_volume, r, sgm_P1/sgm_V, sgm_P2, sgm_Q1, sgm_Q2, sgm_D, "R")
     # taken average
     right_cost_volume = (right_cost_volume_right + right_cost_volume_left + right_cost_volume_up + right_cost_volume_bottom) / 4.
@@ -429,20 +432,24 @@ def bilateral_filter(left_image, left_disparity_map, filter_height, filter_width
 
     return left_disparity_map
 
+# do semi-global matching for one direction r
+# choice is used to specify whether it's left cost volume or right cost volume
+# NOTE: this implementation only supports SGM along axis-directions as the origin MC-CNN used, for other directions like digional, 
+# it is approximated by alternative horizontal and vertical steps
 def semi_global_matching(left_image, right_image, cost_volume, r, sgm_P1, sgm_P2, sgm_Q1, sgm_Q2, sgm_D, choice):
 
     ndisp, height, width = cost_volume.shape
     assert choice == "R" or choice == "L"
+
     rh = r[0]
     rw = r[1]
-    # just do axis-direction dp
+
     assert rh*rw == 0
     if rh >= 0:
         starth = rh
         endh = height
         steph = 1
     else:
-        # NOTE: always [)
         starth = height+rh-1
         endh = -1
         steph = -1
@@ -456,46 +463,45 @@ def semi_global_matching(left_image, right_image, cost_volume, r, sgm_P1, sgm_P2
         endw = -1
         stepw = -1
 
+    # first compute penalty factors P1 and P2 for all disparities of every pixel
     P1 = sgm_P1*np.ones([ndisp, height, width], dtype=np.float32)
     P2 = sgm_P2*np.ones([ndisp, height, width], dtype=np.float32)
     D1 = np.zeros([height, width], dtype=np.float32)
     D2 = np.zeros([ndisp, height, width], dtype=np.float32)
 
     if choice == "L":
-        D1[starth:(endh if endh != -1 else None):steph, startw:(endw if endw != -1 else None):stepw] = \
-                np.linalg.norm(left_image[starth:(endh if endh != -1 else None):steph, startw:(endw if endw != -1 else None):stepw] - \
-                               left_image[starth-rh:(endh-rh if endh-rh != -1 else None):steph, startw-rw:(endw-rw if endw-rw != -1 else None):stepw], axis=-1)
-        for d in range(ndisp):
-            startwd = min(startw+d, width-1)
-            endwd = min(endw+d, width)
-            '''
-            print "d: {} startwd: {} endwd: {} rw: {}".format(d, startwd, endwd, rw)
-            print "startwd-d:endwd-d {}:{}, startd-d-rw:endwd-d-rw {}:{}".format(startwd-d, (endwd-d if endwd-d != -1 else None), startwd-d-rw,(endwd-d-rw if endwd-d-rw != -1 else None))
-            print right_image[starth:(endh if endh != -1 else None):steph, startwd-d:(endwd-d if endwd-d != -1 else None):stepw].shape
-            print right_image[starth-rh:(endh-rh if endh-rh != -1 else None):steph, startwd-d-rw:(endwd-d-rw if endwd-d-rw != -1 else None):stepw].shape
-            '''
+        for h in range(starth, endh, steph):
+            for w in range(startw, endw, stepw):
+                D1[h, w] = np.linalg.norm(left_image[h, w] - left_image[h - rh, w - rw])
 
-            D2[d, starth:(endh if endh != -1 else None):steph, startwd:(endwd if endwd != -1 else None):stepw] = \
-                    np.linalg.norm(right_image[starth:(endh if endh != -1 else None):steph, startwd-d:(endwd-d if endwd-d != -1 else None):stepw] - \
-                                   right_image[starth-rh:(endh-rh if endh-rh != -1 else None):steph, startwd-d-rw:(endwd-d-rw if endwd-d-rw != -1 else None):stepw], axis=-1)
+        for h in range(starth, endh, steph):
+            for w in range(startw, endw, stepw):
+                for d in range(ndisp):
+                    if w - d < 0 or w - rw - d < 0:
+                        continue
+                    
+                    D2[d, h, w] = np.linalg.norm(right_image[h, w - d] - right_image[h - rh, w - rw - d])
+
     else:
-        D1[starth:(endh if endh != -1 else None):steph, startw:(endw if endw != -1 else None):stepw] = \
-                np.linalg.norm(right_image[starth:(endh if endh != -1 else None):steph, startw:(endw if endw != -1 else None):stepw] - \
-                               right_image[starth-rh:(endh-rh if endh-rh != -1 else None):steph, startw-rw:(endw-rw if endw-rw != -1 else None):stepw], axis=-1)
-        for d in range(ndisp):
-            startwd = max(startw-d, 0)
-            endwd = max(endw-d, -1)
-            D2[d, starth:(endh if endh != -1 else None):steph, startwd:(endwd if endwd != -1 else None):stepw] = \
-                    np.linalg.norm(left_image[starth:(endh if endh != -1 else None):steph, startwd+d:(endwd+d if endwd+d != -1 else None):stepw] - \
-                                   left_image[starth-rh:(endh-rh if endh-rh != -1 else None):steph, startwd+d-rw:(endwd+d-rw if endwd+d-rw != -1 else None):stepw], axis=-1)
+        for h in range(starth, endh, steph):
+            for w in range(startw, endw, stepw):
+                D1[h, w] = np.linalg.norm(right_image[h, w] - right_image[h - rh, w - rw])
+
+        for h in range(starth, endh, steph):
+            for w in range(startw, endw, stepw):
+                for d in range(ndisp):
+                    if w + d >= width or w - rw + d >= width:
+                        continue
+                    
+                    D2[d, h, w] = np.linalg.norm(left_image[h, w + d] - left_image[h - rh, w - rw + d])
 
     condition1 = np.logical_and(D1 < sgm_D, D2 < sgm_D)
     condition2 = np.logical_and(D1 >= sgm_D, D2 >= sgm_D)
     condition3 = np.logical_not(np.logical_or(condition1, condition2))
-    P1[condition2] /= sgm_Q2
-    P2[condition2] /= sgm_Q2
-    P1[condition3] /= sgm_Q1
-    P2[condition3] /= sgm_Q1
+    P1[condition2] = P1[condition2] / sgm_Q2
+    P2[condition2] = P2[condition2] / sgm_Q2
+    P1[condition3] = P1[condition3] / sgm_Q1
+    P2[condition3] = P2[condition3] / sgm_Q1
 
     # dynamic programming optimization
     cost_volume_rd = cost_volume
@@ -505,36 +511,22 @@ def semi_global_matching(left_image, right_image, cost_volume, r, sgm_P1, sgm_P2
             d = 0
             item1 = cost_volume_rd[d, h-rh, w-rw]
             item3 = cost_volume_rd[d+1, h-rh, w-rw] + P1[d, h, w]
-            item4 = np.amin(cost_volume_rd[d+2:, h-rh, w-rw]) + P2[d, h, w]
-            cost_volume_rd[d, h, w] += min(item1, min(item3, item4))
-            # d = 1
-            d = 1
-            item1 = cost_volume_rd[d, h-rh, w-rw]
-            item2 = cost_volume_rd[d-1, h-rh, w-rw] + P1[d, h, w]
-            item3 = cost_volume_rd[d+1, h-rh, w-rw] + P1[d, h, w]
-            item4 = np.amin(cost_volume_rd[d+2:, h-rh, w-rw]) + P2[d, h, w]
-            cost_volume_rd[d, h, w] += min(min(item1, item2), min(item3, item4))
+            item4 = np.amin(cost_volume_rd[:, h-rh, w-rw]) + P2[d, h, w]
+            cost_volume_rd[d, h, w] = cost_volume_rd[d, h, w] + min(item1, min(item3, item4)) - np.amin(cost_volume_rd[:, h-rh, w-rw])
 
-            for d in range(2, ndisp-2):
+            for d in range(1, ndisp-1):
                 item1 = cost_volume_rd[d, h-rh, w-rw]
                 item2 = cost_volume_rd[d-1, h-rh, w-rw] + P1[d, h, w]
                 item3 = cost_volume_rd[d+1, h-rh, w-rw] + P1[d, h, w]
-                item4 = np.minimum(np.amin(cost_volume_rd[:d-1, h-rh, w-rw]), np.amin(cost_volume_rd[d+2:, h-rh, w-rw])) + P2[d, h, w]
-                cost_volume_rd[d, h, w] += min(min(item1, item2), min(item3, item4))
+                item4 = np.amin(cost_volume_rd[:, h-rh, w-rw]) + P2[d, h, w]
+                cost_volume_rd[d, h, w] = cost_volume_rd[d, h, w] + min(min(item1, item2), min(item3, item4)) - np.amin(cost_volume_rd[:, h-rh, w-rw])
 
-            # d = ndisp-2
-            d = ndisp-2
-            item1 = cost_volume_rd[d, h-rh, w-rw]
-            item2 = cost_volume_rd[d-1, h-rh, w-rw] + P1[d, h, w]
-            item3 = cost_volume_rd[d+1, h-rh, w-rw] + P1[d, h, w]
-            item4 = np.amin(cost_volume_rd[:d-1, h-rh, w-rw]) + P2[d, h, w]
-            cost_volume_rd[d, h, w] += min(min(item1, item2), min(item3, item4))
             # d = ndisp-1
             d = ndisp - 1
             item1 = cost_volume_rd[d, h-rh, w-rw]
             item2 = cost_volume_rd[d-1, h-rh, w-rw] + P1[d, h, w]
-            item4 = np.amin(cost_volume_rd[:d-1, h-rh, w-rw]) + P2[d, h, w]
-            cost_volume_rd[d, h, w] += min(min(item1, item2), item4)
+            item4 = np.amin(cost_volume_rd[:, h-rh, w-rw]) + P2[d, h, w]
+            cost_volume_rd[d, h, w] = cost_volume_rd[d, h, w] + min(min(item1, item2), item4) - np.amin(cost_volume_rd[:, h-rh, w-rw])
 
     return cost_volume_rd
 
@@ -543,7 +535,7 @@ def compute_cross_region(image, intensity_threshold, distance_threshold):
 
     # the cross union region can be decomposed into vertical and horizontal region
     # and is more efficient
-    height, width= image.shape[0:2]
+    height, width= image.shape[:2]
     union_region_v = np.ndarray([height, width, (2*distance_threshold), 2], dtype=np.int32)
     union_region_v_num = np.zeros([height, width], dtype=np.int32)
 
@@ -552,7 +544,7 @@ def compute_cross_region(image, intensity_threshold, distance_threshold):
         for w in range(width):
             count = 0
             cur_inten = image[h, w]
-            # extend the bottom arm 
+            # extend the top arm 
             for h_bias in range(min(distance_threshold, h+1)):
                 h_ = h - h_bias
                 tem_inten = image[h_, w]
@@ -560,7 +552,7 @@ def compute_cross_region(image, intensity_threshold, distance_threshold):
                     break
                 union_region_v[h, w, count] = np.array([h_, w])
                 count += 1
-            # extend the top arm 
+            # extend the bottom arm 
             for h_bias in range(1, min(distance_threshold, height-h)):
                 h_ = h + h_bias
                 tem_inten = image[h_, w]
@@ -627,15 +619,17 @@ def compute_cross_region(image, intensity_threshold, distance_threshold):
 
     return union_region, union_region_num
 
-# union region shrinkage considering disparity
+# union region when consideing disparity
 # this function can be used to shrink both left and right union regions based on choice("R" or "L")
 def compute_disparity_union_region(left_union_region, left_union_region_num, \
                                    right_union_region, right_union_region_num, disparity, choice):
+
     assert choice == "R" or choice == "L"
     height, width, max_num = left_union_region.shape[0:3]
     assert disparity < width
     d_union_region = np.ndarray([height, width, max_num, 2], dtype=np.int32)
     d_union_region_num = np.zeros([height, width], dtype=np.int32)
+
     # for pixels approaching left/right boundary such that no according pixel for the disparity, 
     # just copy the raw union region
     if choice == "L":
@@ -694,7 +688,6 @@ def compute_disparity_union_region(left_union_region, left_union_region_num, \
                 assert count >= 1 and count <= raw_num
                 d_union_region_num[h, w] = count
                 d_union_region[h, w, count: max_num] = np.array([-1,-1])
-
 
     return d_union_region, d_union_region_num
 

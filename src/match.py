@@ -171,9 +171,11 @@ def main():
         # 5*5 median filter 
         left_disparity_map = median_filter(left_disparity_map, 5, 5)
 
+        """
         # bilateral filter
         left_disparity_map = bilateral_filter(left_image, left_disparity_map, 5, 5, 0, args.blur_sigma, args.blur_threshold)
         print "{}: refined".format(datetime.now())
+        """
 
         # end timer
         endTime = time.time()
