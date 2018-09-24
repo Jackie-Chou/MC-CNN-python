@@ -241,6 +241,7 @@ def disparity_prediction(left_cost_volume, right_cost_volume):
     print "{}: left disparity map making...".format(datetime.now())
     ndisp, height, width = left_cost_volume.shape
     left_disparity_map = np.ndarray([height, width], dtype=np.float32)
+
     for h in range(height):
         for w in range(width):
             min_cost = float("inf")
@@ -255,6 +256,7 @@ def disparity_prediction(left_cost_volume, right_cost_volume):
     # same for right 
     print "{}: right disparity map making...".format(datetime.now())
     right_disparity_map = np.ndarray([height, width], dtype=np.float32)
+
     for h in range(height):
         for w in range(width):
             min_cost = float("inf")
@@ -279,6 +281,7 @@ def interpolation(left_disparity_map, right_disparity_map, ndisp):
     print "{}: doing left-right consistency check...".format(datetime.now())
     height, width = left_disparity_map.shape
     consistency_map = np.zeros([height, width], dtype=np.int32)
+
     for h in range(height):
         for w in range(width):
             left_disparity = int(left_disparity_map[h, w])
@@ -286,77 +289,85 @@ def interpolation(left_disparity_map, right_disparity_map, ndisp):
             if w < left_disparity:
                 consistency_map[h, w] = 2
                 continue
+
             right_disparity = right_disparity_map[h, w-left_disparity]
             if abs(left_disparity - right_disparity) <= 1:
                 # match
                 continue
+
             # check if mismatch
             for d in range(min(w+1, ndisp)):
                 if abs(d - right_disparity_map[h, w-d]) <= 1:
                     # mismatch
                     consistency_map[h, w] = 1
                     break
+
             # otherwise take as occlusion
             if consistency_map[h, w] == 0:
                 consistency_map[h, w] = 2
      
     print "{}: doing interpolation...".format(datetime.now())
     int_left_disparity_map = np.ndarray([height, width], dtype=np.float32)
+
     for h in range(height):
         for w in range(width):
             if consistency_map[h, w] == 0:
                 int_left_disparity_map[h, w] = left_disparity_map[h, w]
             elif consistency_map[h, w] == 1:
                 # mismatch, taken median value from nearest match neighbours in 4 directions
+                # NOTE: in origin paper, they use 16 directions
                 count = 0
                 neighbours = []
+
                 # right
                 for w_ in range(w+1, width):
                     if consistency_map[h, w_] == 0:
                         count += 1
                         neighbours.append(left_disparity_map[h, w_])
                         break
+
                 # left
                 for w_ in range(w-1, -1, -1):
                     if consistency_map[h, w_] == 0:
                         count += 1
                         neighbours.append(left_disparity_map[h, w_])
                         break
-                # top
+
+                # bottom
                 for h_ in range(h+1, height):
                     if consistency_map[h_, w] == 0:
                         count += 1
                         neighbours.append(left_disparity_map[h_, w])
                         break
-                # bottom
+
+                # up
                 for h_ in range(h-1, -1, -1):
                     if consistency_map[h_, w] == 0:
                         count += 1
                         neighbours.append(left_disparity_map[h_, w])
                         break
+
                 neighbours = np.array(neighbours, dtype=np.float32)
+
                 # no nearest match, use the raw value
                 if count == 0:
                     int_left_disparity_map[h, w] = left_disparity_map[h, w]
                 else:
                     int_left_disparity_map[h, w] = np.median(neighbours)
+
             else:
                 # occlusion
-                # just use the nearest left/right match neighbour value
-                # left
+                # just use the nearest match neighbour value on the right
+                # NOTE: in the origin paper, they use left rather than left
+
+                # right
                 count = 0
-                for w_ in range(w-1, -1, -1):
+                for w_ in range(w+1, width):
                     if consistency_map[h, w_] == 0:
                         count += 1
                         int_left_disparity_map[h, w] = left_disparity_map[h, w_]
                         break
-                if count == 0:
-                    # right
-                    for w_ in range(w+1, width):
-                        if consistency_map[h, w_] == 0:
-                            count += 1
-                            int_left_disparity_map[h, w] = left_disparity_map[h, w_]
-                            break
+
                 # no match neighbour found, use the raw value
                 if count == 0:
                     int_left_disparity_map[h, w] = left_disparity_map[h, w]
@@ -366,12 +377,35 @@ def interpolation(left_disparity_map, right_disparity_map, ndisp):
 
     return left_disparity_map
 
+# subpixel enhancement
+def subpixel_enhance(left_disparity_map, left_cost_volume):
+
+    print "{}: doing subpixel enhancement...".format(datetime.now())
+    ndisp, height, width = left_cost_volume.shape
+    se_left_disparity_map = np.ndarray([height, width], dtype=np.float32)
+
+    for h in range(height):
+        for w in range(width):
+            d = left_disparity_map[h, w]
+            if d == 0 or d == ndisp - 1:
+                se_left_disparity_map[h, w] = d
+            else:
+                C_m = left_cost_volume[d - 1, h, w]
+                C_p = left_cost_volume[d + 1, h, w]
+                C = left_cost_volume[d, h, w]
+                se_left_disparity_map[h, w] = d - (C_p - C_m) / (2. * (C_p - 2. * C + C_m))
+
+    print "{}: subpixel enhancement done...".format(datetime.now())
+    
+    return se_left_disparity_map
+
 # refinement1: median filter
 def median_filter(left_disparity_map, filter_height, filter_width):
 
     print "{}: doing median filter...".format(datetime.now())
     height, width = left_disparity_map.shape
     med_left_disparity_map = np.ndarray([height, width], dtype=np.float32)
+
     for h in range(height):
         for w in range(width):
             patch_hs = max(0, h - (filter_height-1)/2)
@@ -381,10 +415,10 @@ def median_filter(left_disparity_map, filter_height, filter_width):
             patch = left_disparity_map[patch_hs:patch_he, patch_ws:patch_we]
             median = np.median(patch)
             med_left_disparity_map[h, w] = median
-    left_disparity_map = med_left_disparity_map
+
     print "{}: median filtering done...".format(datetime.now())
 
-    return left_disparity_map
+    return med_left_disparity_map
 
 # refinement2: bilateral filter
 def bilateral_filter(left_image, left_disparity_map, filter_height, filter_width, mean, std_dev, blur_threshold):
@@ -392,6 +426,8 @@ def bilateral_filter(left_image, left_disparity_map, filter_height, filter_width
     print "{}: doing bilateral filter...".format(datetime.now())
     height, width = left_disparity_map.shape
     g = util.normal(mean, std_dev)
+
+    # precompute filter weight
     center_h = (filter_height - 1)/2
     center_w = (filter_width - 1)/2
     bi_filter = np.zeros([filter_height, filter_width], dtype=np.float32)
@@ -399,6 +435,7 @@ def bilateral_filter(left_image, left_disparity_map, filter_height, filter_width
         for w in range(filter_width):
             bi_filter[h, w] = g(np.sqrt((h - center_h)**2 + (w - center_w)**2))
 
+    # filter
     bi_left_disparity_map = np.ndarray([height, width], dtype=np.float32)
     for h in range(height):
         for w in range(width):
@@ -406,6 +443,7 @@ def bilateral_filter(left_image, left_disparity_map, filter_height, filter_width
             patch_he = min(height, h + (filter_height-1)/2 + 1)
             patch_ws = max(0, w - (filter_width-1)/2)
             patch_we = min(width, w + (filter_width-1)/2 + 1)
+
             patch = left_disparity_map[patch_hs:patch_he, patch_ws:patch_we]
             
             filter_hs = center_h - (h - patch_hs)
@@ -427,10 +465,9 @@ def bilateral_filter(left_image, left_disparity_map, filter_height, filter_width
             final_patch = np.multiply(final_filter, patch)
             bi_left_disparity_map[h, w] = np.sum(final_patch) / Wsum
 
-    left_disparity_map = bi_left_disparity_map
     print "{}: bilateral filtering done...".format(datetime.now())
 
-    return left_disparity_map
+    return bi_left_disparity_map
 
 # do semi-global matching for one direction r
 # choice is used to specify whether it's left cost volume or right cost volume
