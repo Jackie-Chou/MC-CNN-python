@@ -137,13 +137,8 @@ def main():
         left_cost_volume, right_cost_volume = compute_cost_volume(left_feature, right_feature, ndisp)
         print "{}: cost-volume computed".format(datetime.now())
 
-        # disparity map making 
-        left_disparity_map_1, right_disparity_map_1 = disparity_prediction(left_cost_volume, right_cost_volume)
-        print "{}: disparity predicted".format(datetime.now())
-
-        util.saveDisparity(left_disparity_map_1, out_img_path.replace(out_img_file, "disp0MCCNN_1.pgm"))
-
         """
+        # in fast arch. this step is omitted 
         # cost-volume aggregation
         print "{}: beginning cost-volume aggregation, this could take long".format(datetime.now())
         left_cost_volume, right_cost_volume = cost_volume_aggregation(left_image, right_image,left_cost_volume,right_cost_volume,\
@@ -157,19 +152,19 @@ def main():
                                                      args.sgm_P1, args.sgm_P2, args.sgm_Q1, args.sgm_Q2, args.sgm_D, args.sgm_V)
         print "{}: semi-global matched".format(datetime.now())
 
-        '''
+        """
+        # in fast arch. this step is omitted 
         # cost-volume aggregation afterhand
         print "{}: beginning cost-volume aggregation, this could take long".format(datetime.now())
         left_cost_volume, right_cost_volume = cost_volume_aggregation(left_image, right_image,left_cost_volume,right_cost_volume,\
                                                                args.cbca_intensity, args.cbca_distance, args.cbca_num_iterations2) 
         print "{}: cost-volume aggregated".format(datetime.now())
-        '''
+        """
 
         # disparity map making 
         left_disparity_map, right_disparity_map = disparity_prediction(left_cost_volume, right_cost_volume)
         print "{}: disparity predicted".format(datetime.now())
 
-        """
         # interpolation
         left_disparity_map = interpolation(left_disparity_map, right_disparity_map, ndisp)
         print "{}: disparity interpolated".format(datetime.now())
@@ -177,13 +172,10 @@ def main():
         # refinement
         # 5*5 median filter 
         left_disparity_map = median_filter(left_disparity_map, 5, 5)
-        """
 
-        """
         # bilateral filter
         left_disparity_map = bilateral_filter(left_image, left_disparity_map, 5, 5, 0, args.blur_sigma, args.blur_threshold)
         print "{}: refined".format(datetime.now())
-        """
 
         # end timer
         endTime = time.time()

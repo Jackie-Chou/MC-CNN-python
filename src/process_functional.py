@@ -120,8 +120,8 @@ def cost_volume_aggregation(left_image, right_image, left_cost_volume, right_cos
     left_union_region, left_union_region_num = compute_cross_region(left_image, intensity_threshold, distance_threshold)
     right_union_region, right_union_region_num = compute_cross_region(right_image, intensity_threshold, distance_threshold)
     """
-    # NOTE: this is too large and is impractical to run :)
-    # then compute disparity-dependent union regions considering support regions of both images
+    # In their origin paper, the authers propose to consider support regions of both images to further filter the support regions
+    # but this is too large and is impractical to run :)
     print "{}: cost volume aggragation for left image...".format(datetime.now())
     max_num = (2*distance_threshold)**2
     dis_left_union_region = np.ndarray([ndisp, height, width, max_num, 2], dtype=np.int32)
