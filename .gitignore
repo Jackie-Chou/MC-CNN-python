@@ -4,9 +4,11 @@
 *.pfm
 *.txt
 *.sh
-data/
-!data/list/
-!data/MiddEval3/
-data/MiddEval3/*
-!data/MiddEval3/tensorboard_log/model_epoch2000*
+/data/*
+!/data/list/
+/data/list/*
+!/data/list/*
+!/data/tensorboard_log/
+/data/tensorboard_log/*
+!/data/tensorboard_log/model_epoch2000*
 

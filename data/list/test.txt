@@ -1,0 +1,15 @@
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/Crusade/im0.png
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/Plants/im0.png
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/Hoops/im0.png
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/Livingroom/im0.png
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/DjembeL/im0.png
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/AustraliaP/im0.png
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/Newkuba/im0.png
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/Staircase/im0.png
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/Bicycle2/im0.png
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/Computer/im0.png
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/Classroom2/im0.png
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/Djembe/im0.png
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/Classroom2E/im0.png
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/CrusadeP/im0.png
+/scratch/xz/MC-CNN-python/data/MiddEval3/testH/Australia/im0.png
