@@ -137,29 +137,23 @@ def main():
         left_cost_volume, right_cost_volume = compute_cost_volume(left_feature, right_feature, ndisp)
         print "{}: cost-volume computed".format(datetime.now())
 
-        """
-        # in fast arch. this step is omitted 
         # cost-volume aggregation
-        print "{}: beginning cost-volume aggregation, this could take long".format(datetime.now())
+        print "{}: begin cost-volume aggregation. This could take long".format(datetime.now())
         left_cost_volume, right_cost_volume = cost_volume_aggregation(left_image, right_image,left_cost_volume,right_cost_volume,\
                                                                args.cbca_intensity, args.cbca_distance, args.cbca_num_iterations1) 
         print "{}: cost-volume aggregated".format(datetime.now())
-        """
 
         # semi-global matching
-        print "{}: beginning semi-global matching".format(datetime.now())
+        print "{}: begin semi-global matching. This could take long".format(datetime.now())
         left_cost_volume, right_cost_volume = SGM_average(left_cost_volume, right_cost_volume, left_image, right_image, \
                                                      args.sgm_P1, args.sgm_P2, args.sgm_Q1, args.sgm_Q2, args.sgm_D, args.sgm_V)
         print "{}: semi-global matched".format(datetime.now())
 
-        """
-        # in fast arch. this step is omitted 
         # cost-volume aggregation afterhand
-        print "{}: beginning cost-volume aggregation, this could take long".format(datetime.now())
+        print "{}: begin cost-volume aggregation. This could take long".format(datetime.now())
         left_cost_volume, right_cost_volume = cost_volume_aggregation(left_image, right_image,left_cost_volume,right_cost_volume,\
                                                                args.cbca_intensity, args.cbca_distance, args.cbca_num_iterations2) 
         print "{}: cost-volume aggregated".format(datetime.now())
-        """
 
         # disparity map making 
         left_disparity_map, right_disparity_map = disparity_prediction(left_cost_volume, right_cost_volume)
@@ -168,6 +162,10 @@ def main():
         # interpolation
         left_disparity_map = interpolation(left_disparity_map, right_disparity_map, ndisp)
         print "{}: disparity interpolated".format(datetime.now())
+
+        # subpixel enhancement
+        left_disparity_map = subpixel_enhance(left_disparity_map, left_cost_volume)
+        print "{}: subpixel enhanced".format(datetime.now())
 
         # refinement
         # 5*5 median filter 

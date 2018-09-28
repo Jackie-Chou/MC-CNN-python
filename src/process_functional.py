@@ -387,12 +387,12 @@ def subpixel_enhance(left_disparity_map, left_cost_volume):
     for h in range(height):
         for w in range(width):
             d = left_disparity_map[h, w]
-            if d == 0 or d == ndisp - 1:
+            if int(d - 1) < 0 or int(d + 1) >= ndisp:
                 se_left_disparity_map[h, w] = d
             else:
-                C_m = left_cost_volume[d - 1, h, w]
-                C_p = left_cost_volume[d + 1, h, w]
-                C = left_cost_volume[d, h, w]
+                C_m = left_cost_volume[int(d - 1), h, w]
+                C_p = left_cost_volume[int(d + 1), h, w]
+                C = left_cost_volume[int(d), h, w]
                 se_left_disparity_map[h, w] = d - (C_p - C_m) / (2. * (C_p - 2. * C + C_m))
 
     print "{}: subpixel enhancement done...".format(datetime.now())

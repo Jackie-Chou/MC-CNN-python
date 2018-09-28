@@ -138,10 +138,13 @@ class ImageDataGenerator:
         """
             This function reads the next left, right and gt images, 
             and random pick batch_size patch pairs from these images to 
-            construct the nect batch of training data
+            construct the next batch of training data
 
             NOTE: one batch consists of 1 left image patch, and 2 right image patches,
             which consists of 1 positive sample and 1 negative sample
+            NOTE: in the origin MC-CNN paper, the authors propose to use various data augmentation strategies 
+            to enhance the model generalization. Here I do not implement those strategis but I believe it's no
+            difficult to do that.
         """
         # Get next batch of image (path) and labels
         left_path = self.left_paths[self.pointer]

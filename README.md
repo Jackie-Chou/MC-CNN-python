@@ -31,6 +31,7 @@ for details type
 - I haved tested the code on [Middlebury stereo dataset(version 3)](http://vision.middlebury.edu/stereo/submit3/) using the half resolution data. It's supposed the code can be used seamlessly on any other dataset with some details taken care of, especially about data format.
 - All the hyperparameters are set to the suggested value from the origin paper [1] and I do not do further finetuning.
 - In my implementation, some processing details may be a little bit different from what the paper describes and I suppose it would not harm the performance too much. You can find those differences from the comments.
+- The final result on Middlebury dataset, I have to admit, is not that impressive. This may be due to lack of further hyperparemeter finetuning or some unnoticed bugs. If you find any bug during using, please report it in an issue and I will try to fix it ASAP. 
 
 ### License
 MIT license.
