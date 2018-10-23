@@ -546,13 +546,13 @@ def semi_global_matching(left_image, right_image, cost_volume, r, sgm_P1, sgm_P2
         for w in range(startw, endw, stepw):
             # d = 0
             d = 0
-            item1 = cost_volume_rd[d, h-rh, w-rw]
+            item1 = cost_volume_rd[d, h, w] # corrected
             item3 = cost_volume_rd[d+1, h-rh, w-rw] + P1[d, h, w]
             item4 = np.amin(cost_volume_rd[:, h-rh, w-rw]) + P2[d, h, w]
             cost_volume_rd[d, h, w] = cost_volume_rd[d, h, w] + min(item1, min(item3, item4)) - np.amin(cost_volume_rd[:, h-rh, w-rw])
 
             for d in range(1, ndisp-1):
-                item1 = cost_volume_rd[d, h-rh, w-rw]
+                item1 = cost_volume_rd[d, h, w] # corrected
                 item2 = cost_volume_rd[d-1, h-rh, w-rw] + P1[d, h, w]
                 item3 = cost_volume_rd[d+1, h-rh, w-rw] + P1[d, h, w]
                 item4 = np.amin(cost_volume_rd[:, h-rh, w-rw]) + P2[d, h, w]
@@ -560,7 +560,7 @@ def semi_global_matching(left_image, right_image, cost_volume, r, sgm_P1, sgm_P2
 
             # d = ndisp-1
             d = ndisp - 1
-            item1 = cost_volume_rd[d, h-rh, w-rw]
+            item1 = cost_volume_rd[d, h, w] # corrected
             item2 = cost_volume_rd[d-1, h-rh, w-rw] + P1[d, h, w]
             item4 = np.amin(cost_volume_rd[:, h-rh, w-rw]) + P2[d, h, w]
             cost_volume_rd[d, h, w] = cost_volume_rd[d, h, w] + min(min(item1, item2), item4) - np.amin(cost_volume_rd[:, h-rh, w-rw])
